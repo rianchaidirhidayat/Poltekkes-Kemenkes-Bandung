@@ -4,10 +4,10 @@ import {
   SlidersHorizontal,
   QrCode,
   RotateCcw,
-  Sparkles,
   Zap,
   LayoutTemplate,
-  Layers
+  ShieldAlert,
+  LogOut
 } from 'lucide-react';
 import { MicrositeProfile } from '../types';
 
@@ -16,6 +16,7 @@ interface NavbarProps {
   setCurrentView: (view: 'public' | 'admin' | 'split') => void;
   onOpenQR: () => void;
   onResetDemo: () => void;
+  onLogout: () => void;
   profile: MicrositeProfile;
   totalClicks: number;
 }
@@ -25,45 +26,33 @@ export const Navbar: React.FC<NavbarProps> = ({
   setCurrentView,
   onOpenQR,
   onResetDemo,
+  onLogout,
   profile,
   totalClicks,
 }) => {
   return (
-    <nav className="w-full bg-slate-900 border-b border-slate-800 px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 text-slate-100 z-40 relative shadow-sm">
-      {/* Brand Identity */}
+    <nav className="w-full bg-slate-900 border-b border-slate-800 px-3 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 text-slate-100 z-40 relative shadow-sm">
+      {/* Brand Identity & Admin Status */}
       <div className="flex items-center gap-3">
         <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white shadow-sm shadow-indigo-900/40 shrink-0">
-          <Layers className="w-4 h-4" />
+          <ShieldAlert className="w-4 h-4 text-indigo-200" />
         </div>
-        <div className="hidden sm:block">
+        <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-sm font-bold tracking-tight text-white">
-              Portal Pegawai <span className="text-indigo-400 font-extrabold">DirectHub</span>
+            <h1 className="text-xs sm:text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
+              <span>Panel Admin</span>
+              <span className="text-slate-400 font-normal hidden md:inline">• {profile.name}</span>
             </h1>
-            <span className="px-2 py-0.5 bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 text-[10px] font-bold rounded uppercase tracking-wider">
-              Internal
+            <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] font-bold rounded flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Admin Aktif
             </span>
           </div>
-          <p className="text-[11px] text-slate-400 truncate max-w-[240px]">
-            {profile.name}
-          </p>
         </div>
       </div>
 
       {/* Center Main View Switcher */}
       <div className="flex items-center p-1 bg-slate-950/80 border border-slate-800 rounded-lg">
-        <button
-          onClick={() => setCurrentView('public')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-            currentView === 'public'
-              ? 'bg-indigo-600 text-white shadow-sm'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-          }`}
-        >
-          <Globe className="w-3.5 h-3.5" />
-          <span>Halaman Pegawai (Microsite)</span>
-        </button>
-
         <button
           onClick={() => setCurrentView('admin')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
@@ -73,7 +62,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           }`}
         >
           <SlidersHorizontal className="w-3.5 h-3.5" />
-          <span>Admin Pengelola Menu</span>
+          <span>Dashboard Pengelola</span>
         </button>
 
         <button
@@ -87,12 +76,25 @@ export const Navbar: React.FC<NavbarProps> = ({
           <LayoutTemplate className="w-3.5 h-3.5" />
           <span>Split Preview</span>
         </button>
+
+        <button
+          onClick={() => setCurrentView('public')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+            currentView === 'public'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+          }`}
+        >
+          <Globe className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Pratinjau Halaman Pegawai</span>
+          <span className="sm:hidden">Portal</span>
+        </button>
       </div>
 
       {/* Right Controls & Quick Actions */}
       <div className="flex items-center gap-2">
         {/* Real-time Click counter */}
-        <div className="hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-md bg-slate-950 border border-slate-800 text-xs font-mono text-slate-300">
+        <div className="hidden xl:flex items-center gap-1.5 px-3 py-1 rounded-md bg-slate-950 border border-slate-800 text-xs font-mono text-slate-300">
           <Zap className="w-3.5 h-3.5 text-amber-400" />
           <span>{totalClicks} Klik</span>
         </div>
@@ -101,7 +103,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <button
           onClick={onOpenQR}
           title="Tampilkan Barcode QR Code"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition-colors"
+          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition-colors"
         >
           <QrCode className="w-3.5 h-3.5 text-indigo-400" />
           <span className="hidden sm:inline">QR Code</span>
@@ -119,7 +121,18 @@ export const Navbar: React.FC<NavbarProps> = ({
         >
           <RotateCcw className="w-3.5 h-3.5" />
         </button>
+
+        {/* Logout from Admin */}
+        <button
+          onClick={onLogout}
+          title="Keluar dari Akses Admin (Kunci Portal)"
+          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md bg-red-950/50 hover:bg-red-900/70 text-red-300 hover:text-white text-xs font-semibold border border-red-800/60 transition-colors ml-1"
+        >
+          <LogOut className="w-3.5 h-3.5 text-red-400" />
+          <span className="hidden sm:inline">Keluar Admin</span>
+        </button>
       </div>
     </nav>
   );
 };
+

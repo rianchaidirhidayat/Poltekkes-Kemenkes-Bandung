@@ -18,7 +18,8 @@ import {
   Globe,
   Mail,
   ShieldCheck,
-  ExternalLink
+  ExternalLink,
+  Lock
 } from 'lucide-react';
 
 interface PublicMicrositeProps {
@@ -471,12 +472,14 @@ export const PublicMicrosite: React.FC<PublicMicrositeProps> = ({
           </div>
 
           {onOpenAdmin && (
-            <div>
+            <div className="pt-2">
               <button
                 onClick={onOpenAdmin}
-                className="text-[11px] text-neutral-400 hover:text-indigo-400 underline transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 hover:bg-white/10 text-[10px] text-neutral-400 hover:text-indigo-300 border border-white/5 hover:border-indigo-500/20 transition-all opacity-60 hover:opacity-100"
+                title="Akses Pengelola Menu (Khusus Administrator & HRD)"
               >
-                ⚙️ Buka Dashboard Pengelola Menu Pegawai
+                <Lock className="w-2.5 h-2.5" />
+                <span>Akses Pengelola</span>
               </button>
             </div>
           )}

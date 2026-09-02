@@ -33,6 +33,11 @@ import {
   X,
   Sliders,
   FileImage,
+  Lock,
+  KeyRound,
+  ShieldAlert,
+  Key,
+  LogOut,
 } from 'lucide-react';
 import { MenuItem, MicrositeProfile, ClickLog, ButtonSize, ThemeConfig } from '../types';
 import { THEME_PRESETS, CATEGORIES_PRESET } from '../data/initialData';
@@ -53,6 +58,9 @@ interface AdminDashboardProps {
   onOpenQR: () => void;
   onSimulateClick: () => void;
   onClearLogs: () => void;
+  adminPin?: string;
+  setAdminPin?: (newPin: string) => void;
+  onLogout?: () => void;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -66,8 +74,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onOpenQR,
   onSimulateClick,
   onClearLogs,
+  adminPin = 'admin123',
+  setAdminPin,
+  onLogout,
 }) => {
-  const [activeTab, setActiveTab] = useState<'menus' | 'theme' | 'analytics' | 'export'>('menus');
+  const [activeTab, setActiveTab] = useState<'menus' | 'theme' | 'analytics' | 'export' | 'security'>('menus');
   const [editingMenu, setEditingMenu] = useState<MenuItem | null>(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [showLiveSidePreview, setShowLiveSidePreview] = useState(true);
@@ -75,6 +86,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [saveToast, setSaveToast] = useState(false);
   const [isBgDragging, setIsBgDragging] = useState(false);
   const [isLogoDragging, setIsLogoDragging] = useState(false);
+
+  // Security tab local state
+  const [newPinInput, setNewPinInput] = useState('');
+  const [confirmPinInput, setConfirmPinInput] = useState('');
+  const [pinChangeSuccess, setPinChangeSuccess] = useState(false);
+  const [pinChangeError, setPinChangeError] = useState('');
 
   const availableCategories = CATEGORIES_PRESET;
 
@@ -249,6 +266,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           >
             <Download className="w-3.5 h-3.5" />
             <span>Ekspor Data</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('security')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-medium transition-all ${
+              activeTab === 'security'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/70'
+            }`}
+          >
+            <Lock className="w-3.5 h-3.5" />
+            <span>Keamanan & PIN</span>
           </button>
         </div>
 
@@ -1396,6 +1425,163 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       />
                     </label>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 5: SECURITY & ADMIN PIN SETTINGS */}
+            {activeTab === 'security' && (
+              <div className="space-y-6">
+                {/* Header Info */}
+                <div className="p-6 bg-white border border-slate-200 rounded-xl space-y-4 shadow-xs">
+                  <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+                    <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
+                      <ShieldAlert className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-bold text-slate-900 tracking-tight">
+                        Pemisahan Akses Pegawai & Keamanan Admin
+                      </h2>
+                      <p className="text-xs text-slate-500">
+                        Atur kata sandi (PIN) pengelola agar pegawai umum hanya dapat melihat menu tanpa bisa mengubah konfigurasi.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Status Banner */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                    <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-xl space-y-1.5 text-xs text-emerald-900">
+                      <div className="flex items-center gap-1.5 font-bold text-emerald-800">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <span>Halaman Pegawai (Publik): Terisolasi Aman</span>
+                      </div>
+                      <p className="text-[11px] text-emerald-700 leading-relaxed">
+                        Saat tautan portal dibuka oleh karyawan biasa, mereka hanya melihat katalog menu layanan tanpa bilah navigasi admin atau kontrol pengeditan.
+                      </p>
+                    </div>
+
+                    <div className="p-4 bg-indigo-50/70 border border-indigo-200 rounded-xl space-y-1.5 text-xs text-indigo-900">
+                      <div className="flex items-center gap-1.5 font-bold text-indigo-800">
+                        <Key className="w-3.5 h-3.5" />
+                        <span>Akses Admin: Dilindungi PIN</span>
+                      </div>
+                      <p className="text-[11px] text-indigo-700 leading-relaxed">
+                        Pengelola portal dapat masuk melalui tombol kunci tersembunyi di footer, pintasan keyboard <code className="bg-indigo-100/80 px-1 py-0.5 rounded font-mono font-bold">Alt + A</code>, atau URL <code className="bg-indigo-100/80 px-1 py-0.5 rounded font-mono font-bold">#admin</code>.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Change PIN Form */}
+                <div className="p-6 bg-white border border-slate-200 rounded-xl space-y-5 shadow-xs">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">Ubah PIN / Password Admin</h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Ganti PIN bawaan (<code className="font-mono font-bold text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">admin123</code>) dengan PIN rahasia Anda sendiri.
+                    </p>
+                  </div>
+
+                  {/* Current PIN Alert */}
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between text-xs text-slate-700">
+                    <span className="text-slate-500">PIN Admin Saat Ini:</span>
+                    <span className="font-mono font-bold bg-white px-2.5 py-1 rounded border border-slate-200 text-slate-900">
+                      {adminPin}
+                    </span>
+                  </div>
+
+                  {/* New PIN Input */}
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      setPinChangeError('');
+                      setPinChangeSuccess(false);
+
+                      if (!newPinInput.trim()) {
+                        setPinChangeError('PIN baru tidak boleh kosong.');
+                        return;
+                      }
+                      if (newPinInput.length < 4) {
+                        setPinChangeError('PIN minimal 4 karakter demi keamanan.');
+                        return;
+                      }
+                      if (newPinInput !== confirmPinInput) {
+                        setPinChangeError('Konfirmasi PIN tidak cocok dengan PIN baru.');
+                        return;
+                      }
+
+                      if (setAdminPin) {
+                        setAdminPin(newPinInput.trim());
+                      }
+                      setNewPinInput('');
+                      setConfirmPinInput('');
+                      setPinChangeSuccess(true);
+                      triggerSaveFeedback();
+                      setTimeout(() => setPinChangeSuccess(false), 4000);
+                    }}
+                    className="space-y-4 pt-2"
+                  >
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          PIN / Password Baru
+                        </label>
+                        <input
+                          type="password"
+                          value={newPinInput}
+                          onChange={(e) => setNewPinInput(e.target.value)}
+                          placeholder="Masukkan PIN baru..."
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono text-slate-900 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          Ulangi PIN Baru
+                        </label>
+                        <input
+                          type="password"
+                          value={confirmPinInput}
+                          onChange={(e) => setConfirmPinInput(e.target.value)}
+                          placeholder="Ketik ulang PIN baru..."
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono text-slate-900 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                        />
+                      </div>
+                    </div>
+
+                    {pinChangeError && (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-medium text-red-700">
+                        {pinChangeError}
+                      </div>
+                    )}
+
+                    {pinChangeSuccess && (
+                      <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs font-medium text-emerald-800 flex items-center gap-2">
+                        <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>PIN Admin berhasil diperbarui! Jangan lupa catat PIN baru Anda.</span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-3 pt-2">
+                      <button
+                        type="submit"
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5"
+                      >
+                        <KeyRound className="w-3.5 h-3.5" />
+                        <span>Simpan PIN Baru</span>
+                      </button>
+
+                      {onLogout && (
+                        <button
+                          type="button"
+                          onClick={onLogout}
+                          className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5"
+                        >
+                          <LogOut className="w-3.5 h-3.5 text-slate-500" />
+                          <span>Kunci & Keluar ke Tampilan Pegawai</span>
+                        </button>
+                      )}
+                    </div>
+                  </form>
                 </div>
               </div>
             )}
