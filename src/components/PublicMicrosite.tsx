@@ -91,6 +91,12 @@ export const PublicMicrosite: React.FC<PublicMicrositeProps> = ({
 
   // Get background styles
   const getPageBackgroundStyle = (): React.CSSProperties => {
+    if (theme.bgType === 'custom-image' && theme.customBgImage) {
+      return {
+        backgroundColor: theme.primaryBg || '#0f172a',
+      };
+    }
+
     switch (theme.bgType) {
       case 'mesh':
         return {
@@ -142,12 +148,39 @@ export const PublicMicrosite: React.FC<PublicMicrositeProps> = ({
     }
   };
 
+  const isCustomBg = (theme.bgType === 'custom-image' || !!theme.customBgImage) && !!theme.customBgImage;
+
   return (
     <div
       style={getPageBackgroundStyle()}
-      className={`min-h-full w-full transition-colors duration-300 py-6 sm:py-10 px-3 sm:px-6 flex flex-col items-center justify-start font-${theme.fontFamily || 'sans'}`}
+      className={`min-h-full w-full relative overflow-hidden transition-colors duration-300 py-6 sm:py-10 px-3 sm:px-6 flex flex-col items-center justify-start font-${theme.fontFamily || 'sans'}`}
     >
-      <div className="w-full max-w-xl mx-auto flex flex-col items-center">
+      {/* Custom Background Image Layer with Blur & Fit */}
+      {isCustomBg && (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+          <div
+            style={{
+              backgroundImage: `url(${theme.customBgImage})`,
+              backgroundSize: theme.bgFit === 'contain' ? 'contain' : theme.bgFit === 'tile' ? 'auto' : 'cover',
+              backgroundRepeat: theme.bgFit === 'tile' ? 'repeat' : 'no-repeat',
+              backgroundPosition: 'center',
+              filter: theme.bgBlur ? `blur(${theme.bgBlur}px)` : 'none',
+              transform: theme.bgBlur ? 'scale(1.05)' : 'none', // Prevents edge artifacts when blur is applied
+            }}
+            className="absolute inset-0 w-full h-full transition-all duration-300"
+          />
+          {/* Tint Overlay for Text Readability */}
+          <div
+            style={{
+              backgroundColor: theme.bgOverlayColor || '#0f172a',
+              opacity: (theme.bgOverlayOpacity ?? 70) / 100,
+            }}
+            className="absolute inset-0 w-full h-full transition-opacity duration-300"
+          />
+        </div>
+      )}
+
+      <div className="w-full max-w-xl mx-auto flex flex-col items-center relative z-10">
         {/* Floating Share and QR Quick Actions */}
         <div className="w-full flex items-center justify-between gap-2 mb-4 px-1">
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/40 border border-white/10 backdrop-blur-md text-[11px] text-neutral-300 font-medium">

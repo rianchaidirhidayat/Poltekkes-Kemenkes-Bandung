@@ -14,7 +14,7 @@ export type ButtonActionType =
 
 export type AnimationEffect = 'none' | 'pulse' | 'bounce' | 'glow' | 'shimmer';
 
-export type BackgroundType = 'gradient' | 'mesh' | 'solid' | 'glass' | 'dark-neon' | 'warm-paper';
+export type BackgroundType = 'gradient' | 'mesh' | 'solid' | 'glass' | 'dark-neon' | 'warm-paper' | 'custom-image';
 
 export interface MenuItem {
   id: string;
@@ -64,6 +64,11 @@ export interface ThemeConfig {
   cardGlassEffect: boolean;
   fontFamily: 'sans' | 'outfit' | 'mono';
   layoutStyle: 'stacked' | 'bento';
+  customBgImage?: string;
+  bgOverlayColor?: string;
+  bgOverlayOpacity?: number; // 0 to 100 (%)
+  bgBlur?: number; // 0 to 20 (px)
+  bgFit?: 'cover' | 'contain' | 'tile';
 }
 
 export type LogoShape = 'landscape' | 'circle' | 'rounded-square' | 'banner' | 'auto';

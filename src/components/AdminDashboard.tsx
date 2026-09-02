@@ -27,7 +27,12 @@ import {
   Layers,
   Zap,
   HelpCircle,
-  Tag
+  Tag,
+  Upload,
+  Image as ImageIcon,
+  X,
+  Sliders,
+  FileImage,
 } from 'lucide-react';
 import { MenuItem, MicrositeProfile, ClickLog, ButtonSize, ThemeConfig } from '../types';
 import { THEME_PRESETS, CATEGORIES_PRESET } from '../data/initialData';
@@ -68,8 +73,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [showLiveSidePreview, setShowLiveSidePreview] = useState(true);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [saveToast, setSaveToast] = useState(false);
+  const [isBgDragging, setIsBgDragging] = useState(false);
+  const [isLogoDragging, setIsLogoDragging] = useState(false);
 
   const availableCategories = CATEGORIES_PRESET;
+
+  // File Upload Helper
+  const handleLocalImageUpload = (
+    file: File,
+    onSuccess: (dataUrl: string) => void
+  ) => {
+    if (!file.type.startsWith('image/')) {
+      alert('Harap unggah file gambar (PNG, JPG, WebP, SVG)');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (e.target?.result) {
+        onSuccess(e.target.result as string);
+        triggerSaveFeedback();
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Handlers for Menu Management
   const handleAddNewMenu = () => {
@@ -535,10 +561,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <div className="flex items-center justify-between">
                         <div>
                           <label className="block text-xs font-bold text-slate-800">
-                            🖼️ URL Logo / Ikon Portal (Mendukung Logo Panjang & Horizontal)
+                            🖼️ Logo & Ikon Portal (Upload dari Komputer atau URL)
                           </label>
                           <p className="text-[11px] text-slate-500">
-                            Masukkan tautan gambar logo. Logo panjang atau landscape akan tampil utuh tanpa terpotong.
+                            Upload file logo dari komputer atau masukkan URL. Format landscape/panjang akan terlihat utuh.
                           </p>
                         </div>
                         {profile.avatarUrl && (
@@ -548,71 +574,139 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         )}
                       </div>
 
-                      <div className="flex flex-col sm:flex-row gap-3 items-start">
-                        <div className="flex-1 w-full">
-                          <input
-                            type="text"
-                            placeholder="https://.../logo-perusahaan.png"
-                            value={profile.avatarUrl}
-                            onChange={(e) => setProfile({ ...profile, avatarUrl: e.target.value })}
-                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-900 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                          />
-                          <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                            <span className="text-[10px] text-slate-400">Contoh Cepat:</span>
-                            <button
-                              type="button"
-                              onClick={() => setProfile({
-                                ...profile,
-                                avatarUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&auto=format&fit=crop&q=80',
-                                logoShape: 'landscape',
-                                logoHeight: 68
-                              })}
-                              className="text-[10px] px-2 py-0.5 bg-white hover:bg-slate-100 text-slate-600 rounded border border-slate-200 transition-colors"
+                      {/* File Upload Drop Zone & URL Input */}
+                      <div className="space-y-3">
+                        <div className="flex flex-col sm:flex-row gap-3 items-start">
+                          <div className="flex-1 w-full space-y-2">
+                            {/* Drag & Drop / Click Upload Box */}
+                            <div
+                              onDragOver={(e) => {
+                                e.preventDefault();
+                                setIsLogoDragging(true);
+                              }}
+                              onDragLeave={() => setIsLogoDragging(false)}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                setIsLogoDragging(false);
+                                if (e.dataTransfer.files?.[0]) {
+                                  handleLocalImageUpload(e.dataTransfer.files[0], (dataUrl) => {
+                                    setProfile({
+                                      ...profile,
+                                      avatarUrl: dataUrl,
+                                      logoShape: profile.logoShape || 'landscape',
+                                    });
+                                  });
+                                }
+                              }}
+                              className={`relative border-2 border-dashed rounded-xl p-3 text-center transition-all cursor-pointer ${
+                                isLogoDragging
+                                  ? 'border-indigo-500 bg-indigo-50/80 scale-[1.01]'
+                                  : 'border-slate-300 bg-white hover:border-indigo-400 hover:bg-slate-50/50'
+                              }`}
                             >
-                              Gedung Korporat
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setProfile({
-                                ...profile,
-                                avatarUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/375px-Google_2015_logo.svg.png',
-                                logoShape: 'landscape',
-                                logoHeight: 56,
-                                logoBackground: 'white'
-                              })}
-                              className="text-[10px] px-2 py-0.5 bg-white hover:bg-slate-100 text-slate-600 rounded border border-slate-200 transition-colors"
-                            >
-                              Logo Teks Lebar (Google)
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Live Mini Preview */}
-                        <div className="shrink-0 flex flex-col items-center">
-                          <div
-                            style={{ height: `${Math.min(profile.logoHeight || 70, 80)}px` }}
-                            className={`min-w-[100px] max-w-[180px] px-3 py-1.5 rounded-xl border border-slate-200 flex items-center justify-center transition-all ${
-                              profile.logoBackground === 'white'
-                                ? 'bg-white shadow-xs'
-                                : profile.logoBackground === 'dark'
-                                ? 'bg-slate-900'
-                                : profile.logoBackground === 'transparent'
-                                ? 'bg-transparent border-dashed'
-                                : 'bg-slate-800 text-white'
-                            }`}
-                          >
-                            {profile.avatarUrl ? (
-                              <img
-                                src={profile.avatarUrl}
-                                alt="Preview Logo"
-                                style={{ maxHeight: `${Math.min((profile.logoHeight || 70) - 10, 70)}px` }}
-                                className="w-auto h-auto max-w-full object-contain"
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => {
+                                  if (e.target.files?.[0]) {
+                                    handleLocalImageUpload(e.target.files[0], (dataUrl) => {
+                                      setProfile({
+                                        ...profile,
+                                        avatarUrl: dataUrl,
+                                        logoShape: profile.logoShape || 'landscape',
+                                      });
+                                    });
+                                  }
+                                }}
+                                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
                               />
-                            ) : (
-                              <span className="text-[10px] text-slate-400">Tanpa Logo</span>
-                            )}
+                              <div className="flex items-center justify-center gap-2 text-xs font-semibold text-indigo-600">
+                                <Upload className="w-4 h-4" />
+                                <span>Klik untuk Pilih File Logo dari Komputer atau Drag & Drop</span>
+                              </div>
+                              <p className="text-[10px] text-slate-400 mt-0.5">
+                                Mendukung PNG (Transparan), JPG, WebP, SVG
+                              </p>
+                            </div>
+
+                            {/* Or Manual URL */}
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] uppercase font-bold text-slate-400 shrink-0">atau URL:</span>
+                              <input
+                                type="text"
+                                placeholder="https://.../logo-perusahaan.png"
+                                value={profile.avatarUrl}
+                                onChange={(e) => setProfile({ ...profile, avatarUrl: e.target.value })}
+                                className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-900 focus:outline-none focus:border-indigo-500"
+                              />
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                              <span className="text-[10px] text-slate-400">Contoh Cepat:</span>
+                              <button
+                                type="button"
+                                onClick={() => setProfile({
+                                  ...profile,
+                                  avatarUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&auto=format&fit=crop&q=80',
+                                  logoShape: 'landscape',
+                                  logoHeight: 68
+                                })}
+                                className="text-[10px] px-2 py-0.5 bg-white hover:bg-slate-100 text-slate-600 rounded border border-slate-200 transition-colors"
+                              >
+                                Gedung Korporat
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setProfile({
+                                  ...profile,
+                                  avatarUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/375px-Google_2015_logo.svg.png',
+                                  logoShape: 'landscape',
+                                  logoHeight: 56,
+                                  logoBackground: 'white'
+                                })}
+                                className="text-[10px] px-2 py-0.5 bg-white hover:bg-slate-100 text-slate-600 rounded border border-slate-200 transition-colors"
+                              >
+                                Logo Teks Lebar (Google)
+                              </button>
+                              {profile.avatarUrl && (
+                                <button
+                                  type="button"
+                                  onClick={() => setProfile({ ...profile, avatarUrl: '' })}
+                                  className="text-[10px] px-2 py-0.5 bg-red-50 hover:bg-red-100 text-red-600 rounded border border-red-200 transition-colors"
+                                >
+                                  Hapus Logo
+                                </button>
+                              )}
+                            </div>
                           </div>
-                          <span className="text-[9px] text-slate-400 mt-1">Live Mini Preview</span>
+
+                          {/* Live Mini Preview */}
+                          <div className="shrink-0 flex flex-col items-center">
+                            <div
+                              style={{ height: `${Math.min(profile.logoHeight || 70, 85)}px` }}
+                              className={`min-w-[110px] max-w-[180px] px-3 py-1.5 rounded-xl border border-slate-200 flex items-center justify-center transition-all ${
+                                profile.logoBackground === 'white'
+                                  ? 'bg-white shadow-xs'
+                                  : profile.logoBackground === 'dark'
+                                  ? 'bg-slate-900'
+                                  : profile.logoBackground === 'transparent'
+                                  ? 'bg-transparent border-dashed'
+                                  : 'bg-slate-800 text-white'
+                              }`}
+                            >
+                              {profile.avatarUrl ? (
+                                <img
+                                  src={profile.avatarUrl}
+                                  alt="Preview Logo"
+                                  style={{ maxHeight: `${Math.min((profile.logoHeight || 70) - 10, 75)}px` }}
+                                  className="w-auto h-auto max-w-full object-contain"
+                                />
+                              ) : (
+                                <span className="text-[10px] text-slate-400">Tanpa Logo</span>
+                              )}
+                            </div>
+                            <span className="text-[9px] text-slate-400 mt-1">Live Mini Preview</span>
+                          </div>
                         </div>
                       </div>
 
@@ -754,6 +848,365 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </button>
                     ))}
                   </div>
+                </div>
+
+                {/* Custom Background Upload Card */}
+                <div className="p-6 bg-white border border-slate-200 rounded-xl space-y-5 shadow-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100">
+                          <Upload className="w-4 h-4" />
+                        </div>
+                        <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+                          Background Kustom (Upload dari Komputer)
+                        </h3>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Ganti latar belakang portal dengan foto kantor, banner perusahaan, atau gambar desain sendiri
+                      </p>
+                    </div>
+
+                    {profile.theme.customBgImage && (
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${
+                          profile.theme.bgType === 'custom-image'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-slate-100 text-slate-600 border-slate-200'
+                        }`}>
+                          {profile.theme.bgType === 'custom-image' ? '● Background Aktif' : '○ Background Tersimpan'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Drag & Drop Upload Zone */}
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setIsBgDragging(true);
+                    }}
+                    onDragLeave={() => setIsBgDragging(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsBgDragging(false);
+                      if (e.dataTransfer.files?.[0]) {
+                        handleLocalImageUpload(e.dataTransfer.files[0], (dataUrl) => {
+                          setProfile({
+                            ...profile,
+                            theme: {
+                              ...profile.theme,
+                              customBgImage: dataUrl,
+                              bgType: 'custom-image',
+                              bgOverlayOpacity: profile.theme.bgOverlayOpacity ?? 70,
+                              bgBlur: profile.theme.bgBlur ?? 2,
+                              bgFit: profile.theme.bgFit ?? 'cover',
+                              bgOverlayColor: profile.theme.bgOverlayColor ?? '#0f172a',
+                            },
+                          });
+                        });
+                      }
+                    }}
+                    className={`relative border-2 border-dashed rounded-2xl p-6 text-center transition-all cursor-pointer ${
+                      isBgDragging
+                        ? 'border-indigo-500 bg-indigo-50/80 scale-[1.01]'
+                        : 'border-slate-300 bg-slate-50/60 hover:border-indigo-400 hover:bg-slate-50'
+                    }`}
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        if (e.target.files?.[0]) {
+                          handleLocalImageUpload(e.target.files[0], (dataUrl) => {
+                            setProfile({
+                              ...profile,
+                              theme: {
+                                ...profile.theme,
+                                customBgImage: dataUrl,
+                                bgType: 'custom-image',
+                                bgOverlayOpacity: profile.theme.bgOverlayOpacity ?? 70,
+                                bgBlur: profile.theme.bgBlur ?? 2,
+                                bgFit: profile.theme.bgFit ?? 'cover',
+                                bgOverlayColor: profile.theme.bgOverlayColor ?? '#0f172a',
+                              },
+                            });
+                          });
+                        }
+                      }}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                    />
+
+                    <div className="flex flex-col items-center justify-center space-y-2">
+                      <div className="p-3 bg-white rounded-full shadow-xs border border-slate-200 text-indigo-600">
+                        <Upload className="w-6 h-6" />
+                      </div>
+                      <div className="text-xs font-bold text-slate-800">
+                        Klik untuk Memilih File Background dari Komputer atau Drag & Drop ke Sini
+                      </div>
+                      <p className="text-[11px] text-slate-500">
+                        Mendukung format gambar resolusi tinggi (PNG, JPG, JPEG, WebP)
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Preset Background Cepat & URL Input */}
+                  <div className="space-y-2 pt-1">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-[11px] font-semibold text-slate-600">Preset Wallpaper Kantor & Tekstur:</span>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {[
+                          {
+                            name: '🏢 Gedung Modern',
+                            url: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1600&auto=format&fit=crop&q=80',
+                          },
+                          {
+                            name: '💻 Ruang Rapat Tech',
+                            url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1600&auto=format&fit=crop&q=80',
+                          },
+                          {
+                            name: '🌿 Kantor Hijau Eco',
+                            url: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?w=1600&auto=format&fit=crop&q=80',
+                          },
+                          {
+                            name: '🌌 Dark Sleek Grid',
+                            url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=1600&auto=format&fit=crop&q=80',
+                          },
+                        ].map((bgItem) => (
+                          <button
+                            key={bgItem.name}
+                            type="button"
+                            onClick={() => {
+                              setProfile({
+                                ...profile,
+                                theme: {
+                                  ...profile.theme,
+                                  customBgImage: bgItem.url,
+                                  bgType: 'custom-image',
+                                  bgOverlayOpacity: profile.theme.bgOverlayOpacity ?? 70,
+                                  bgBlur: profile.theme.bgBlur ?? 2,
+                                  bgFit: 'cover',
+                                },
+                              });
+                              triggerSaveFeedback();
+                            }}
+                            className="text-[10px] px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg border border-slate-200 transition-colors"
+                          >
+                            {bgItem.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 shrink-0">atau URL Langsung:</span>
+                      <input
+                        type="text"
+                        placeholder="https://.../gambar-background.jpg"
+                        value={profile.theme.customBgImage || ''}
+                        onChange={(e) => {
+                          setProfile({
+                            ...profile,
+                            theme: {
+                              ...profile.theme,
+                              customBgImage: e.target.value,
+                              bgType: e.target.value ? 'custom-image' : profile.theme.bgType,
+                            },
+                          });
+                        }}
+                        className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono text-slate-900 focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Active Custom Background Preview & Fine-tune Controls */}
+                  {profile.theme.customBgImage && (
+                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+                      {/* Image Card Header */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-16 h-12 rounded-lg border border-slate-200 overflow-hidden relative shadow-xs bg-slate-900 shrink-0">
+                            <img
+                              src={profile.theme.customBgImage}
+                              alt="Background Preview"
+                              className="w-full h-full object-cover"
+                            />
+                            <div
+                              style={{
+                                backgroundColor: profile.theme.bgOverlayColor || '#0f172a',
+                                opacity: (profile.theme.bgOverlayOpacity ?? 70) / 100,
+                              }}
+                              className="absolute inset-0"
+                            />
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold text-slate-800">
+                              Preview Background & Efek Overlay
+                            </div>
+                            <div className="text-[11px] text-slate-500">
+                              Sesuaikan transparansi dan blur agar teks & tombol tetap kontras
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setProfile({
+                                ...profile,
+                                theme: {
+                                  ...profile.theme,
+                                  bgType: profile.theme.bgType === 'custom-image' ? 'mesh' : 'custom-image',
+                                },
+                              });
+                              triggerSaveFeedback();
+                            }}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                              profile.theme.bgType === 'custom-image'
+                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                                : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                            }`}
+                          >
+                            {profile.theme.bgType === 'custom-image' ? '✓ Sedang Digunakan' : 'Terapkan Background Ini'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setProfile({
+                                ...profile,
+                                theme: {
+                                  ...profile.theme,
+                                  customBgImage: undefined,
+                                  bgType: 'mesh',
+                                },
+                              });
+                              triggerSaveFeedback();
+                            }}
+                            className="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg text-xs font-medium transition-colors"
+                            title="Hapus Background Kustom"
+                          >
+                            Hapus
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Fine-Tuning Sliders & Controls */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-3 border-t border-slate-200">
+                        {/* Overlay Darkness Slider */}
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="text-[11px] font-semibold text-slate-700">
+                              Kegelapan Overlay: <span className="text-indigo-600 font-bold">{profile.theme.bgOverlayOpacity ?? 70}%</span>
+                            </label>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="95"
+                            step="5"
+                            value={profile.theme.bgOverlayOpacity ?? 70}
+                            onChange={(e) =>
+                              setProfile({
+                                ...profile,
+                                theme: {
+                                  ...profile.theme,
+                                  bgOverlayOpacity: parseInt(e.target.value),
+                                },
+                              })
+                            }
+                            className="w-full accent-indigo-600 cursor-pointer"
+                          />
+                          <div className="flex justify-between text-[9px] text-slate-400 mt-0.5">
+                            <span>0% (Terang)</span>
+                            <span>70% (Standar)</span>
+                            <span>95% (Gelap)</span>
+                          </div>
+                        </div>
+
+                        {/* Blur Slider */}
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="text-[11px] font-semibold text-slate-700">
+                              Efek Blur Latar: <span className="text-indigo-600 font-bold">{profile.theme.bgBlur ?? 2}px</span>
+                            </label>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="20"
+                            step="1"
+                            value={profile.theme.bgBlur ?? 2}
+                            onChange={(e) =>
+                              setProfile({
+                                ...profile,
+                                theme: {
+                                  ...profile.theme,
+                                  bgBlur: parseInt(e.target.value),
+                                },
+                              })
+                            }
+                            className="w-full accent-indigo-600 cursor-pointer"
+                          />
+                          <div className="flex justify-between text-[9px] text-slate-400 mt-0.5">
+                            <span>0px (Tajam)</span>
+                            <span>2px (Halus)</span>
+                            <span>20px (Glassy)</span>
+                          </div>
+                        </div>
+
+                        {/* Background Fit */}
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                            Gaya Tampilan (Fit)
+                          </label>
+                          <select
+                            value={profile.theme.bgFit || 'cover'}
+                            onChange={(e) =>
+                              setProfile({
+                                ...profile,
+                                theme: {
+                                  ...profile.theme,
+                                  bgFit: e.target.value as any,
+                                },
+                              })
+                            }
+                            className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-indigo-500"
+                          >
+                            <option value="cover">🖼️ Cover (Penuh Layar)</option>
+                            <option value="contain">🔍 Contain (Proporsional)</option>
+                            <option value="tile">🔲 Tile (Ulang Pola)</option>
+                          </select>
+                        </div>
+
+                        {/* Tint Color */}
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                            Warna Lapisan Tint
+                          </label>
+                          <select
+                            value={profile.theme.bgOverlayColor || '#0f172a'}
+                            onChange={(e) =>
+                              setProfile({
+                                ...profile,
+                                theme: {
+                                  ...profile.theme,
+                                  bgOverlayColor: e.target.value,
+                                },
+                              })
+                            }
+                            className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-indigo-500"
+                          >
+                            <option value="#0f172a">🌑 Slate Navy (Default)</option>
+                            <option value="#000000">⬛ Hitam Pekat (True Black)</option>
+                            <option value="#0c1b33">🔷 Navy Korporat</option>
+                            <option value="#06281e">🌲 Emerald Forest</option>
+                            <option value="#1e1b4b">🟣 Deep Indigo</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Layout & Card Styling */}
