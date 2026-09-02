@@ -124,19 +124,11 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
             )}
           </div>
 
-          {/* Hint / Quick Fill for initial setup */}
-          <div className="pt-1 flex items-center justify-between text-[11px] text-slate-500">
-            <span>PIN Bawaan: <code className="font-mono font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">admin123</code></span>
-            <button
-              type="button"
-              onClick={() => {
-                setPinInput('admin123');
-                setErrorMsg('');
-              }}
-              className="text-indigo-600 hover:text-indigo-800 underline font-semibold"
-            >
-              Gunakan Default
-            </button>
+          {/* Hint for password recovery */}
+          <div className="pt-1 flex items-center justify-between text-[11px] text-slate-500 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+            <span className="text-slate-600">
+              Lupa PIN? <strong className="text-indigo-600 font-semibold">Silahkan hubungi tim OSDM</strong>
+            </span>
           </div>
 
           {/* Action Buttons */}

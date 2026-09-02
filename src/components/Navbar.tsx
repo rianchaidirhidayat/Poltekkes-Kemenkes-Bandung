@@ -7,7 +7,9 @@ import {
   Zap,
   LayoutTemplate,
   ShieldAlert,
-  LogOut
+  LogOut,
+  Send,
+  Check
 } from 'lucide-react';
 import { MicrositeProfile } from '../types';
 
@@ -17,6 +19,9 @@ interface NavbarProps {
   onOpenQR: () => void;
   onResetDemo: () => void;
   onLogout: () => void;
+  onPublish?: () => void;
+  isPublishing?: boolean;
+  lastPublishedAt?: string | null;
   profile: MicrositeProfile;
   totalClicks: number;
 }
@@ -27,6 +32,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenQR,
   onResetDemo,
   onLogout,
+  onPublish,
+  isPublishing = false,
+  lastPublishedAt,
   profile,
   totalClicks,
 }) => {
@@ -93,6 +101,28 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Right Controls & Quick Actions */}
       <div className="flex items-center gap-2">
+        {/* Tombol Posting / Update Halaman Pegawai */}
+        {onPublish && (
+          <button
+            onClick={onPublish}
+            disabled={isPublishing}
+            title="Posting dan publikasikan perubahan agar langsung tayang di portal pegawai"
+            className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-md bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-md shadow-emerald-950/40 border border-emerald-400/30 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-75"
+          >
+            {isPublishing ? (
+              <>
+                <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span>Memposting...</span>
+              </>
+            ) : (
+              <>
+                <Send className="w-3.5 h-3.5 text-emerald-100" />
+                <span>Posting / Update Portal</span>
+              </>
+            )}
+          </button>
+        )}
+
         {/* Real-time Click counter */}
         <div className="hidden xl:flex items-center gap-1.5 px-3 py-1 rounded-md bg-slate-950 border border-slate-800 text-xs font-mono text-slate-300">
           <Zap className="w-3.5 h-3.5 text-amber-400" />

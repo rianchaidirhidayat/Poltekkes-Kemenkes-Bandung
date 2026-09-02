@@ -29,6 +29,7 @@ interface PublicMicrositeProps {
   onOpenQR: () => void;
   onOpenAdmin?: () => void;
   isStandalone?: boolean;
+  lastPublishedAt?: string | null;
 }
 
 export const PublicMicrosite: React.FC<PublicMicrositeProps> = ({
@@ -38,6 +39,7 @@ export const PublicMicrosite: React.FC<PublicMicrositeProps> = ({
   onOpenQR,
   onOpenAdmin,
   isStandalone = false,
+  lastPublishedAt,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
   const [searchQuery, setSearchQuery] = useState<string>('');

@@ -6,6 +6,8 @@ import { QRCodeModal } from './components/QRCodeModal';
 import { AdminAuthModal } from './components/AdminAuthModal';
 import { MenuItem, MicrositeProfile, ClickLog } from './types';
 import { INITIAL_MENUS, INITIAL_PROFILE, INITIAL_CLICK_LOGS } from './data/initialData';
+import { motion, AnimatePresence } from 'motion/react';
+import { CheckCheck, Sparkles, Send } from 'lucide-react';
 
 const LOCAL_STORAGE_MENUS_KEY = 'direct_menu_items_v2';
 const LOCAL_STORAGE_PROFILE_KEY = 'direct_menu_profile_v2';
@@ -13,8 +15,13 @@ const LOCAL_STORAGE_LOGS_KEY = 'direct_menu_logs_v2';
 const LOCAL_STORAGE_ADMIN_PIN_KEY = 'direct_menu_admin_pin_v2';
 const SESSION_ADMIN_AUTH_KEY = 'direct_menu_admin_auth_v2';
 
+// Live published storage keys (what employees see on public page)
+const LOCAL_STORAGE_LIVE_MENUS_KEY = 'direct_menu_live_items_v2';
+const LOCAL_STORAGE_LIVE_PROFILE_KEY = 'direct_menu_live_profile_v2';
+const LOCAL_STORAGE_LAST_PUBLISHED_KEY = 'direct_menu_last_published_v2';
+
 export default function App() {
-  // Load initial states from localStorage with safe fallback
+  // Load initial draft states (Admin working copy)
   const [menus, setMenus] = useState<MenuItem[]>(() => {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_MENUS_KEY);
@@ -34,6 +41,43 @@ export default function App() {
     }
     return INITIAL_PROFILE;
   });
+
+  // Live published state (What regular employees see)
+  const [liveMenus, setLiveMenus] = useState<MenuItem[]>(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_LIVE_MENUS_KEY);
+      if (saved) return JSON.parse(saved);
+      // Fallback to draft or initial if not yet published separately
+      const draftSaved = localStorage.getItem(LOCAL_STORAGE_MENUS_KEY);
+      if (draftSaved) return JSON.parse(draftSaved);
+    } catch {
+      // ignore
+    }
+    return INITIAL_MENUS;
+  });
+
+  const [liveProfile, setLiveProfile] = useState<MicrositeProfile>(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_LIVE_PROFILE_KEY);
+      if (saved) return JSON.parse(saved);
+      const draftSaved = localStorage.getItem(LOCAL_STORAGE_PROFILE_KEY);
+      if (draftSaved) return JSON.parse(draftSaved);
+    } catch {
+      // ignore
+    }
+    return INITIAL_PROFILE;
+  });
+
+  const [lastPublishedAt, setLastPublishedAt] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(LOCAL_STORAGE_LAST_PUBLISHED_KEY);
+    } catch {
+      return null;
+    }
+  });
+
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishSuccessToast, setPublishSuccessToast] = useState(false);
 
   const [logs, setLogs] = useState<ClickLog[]>(() => {
     try {
@@ -76,7 +120,7 @@ export default function App() {
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  // Sync to LocalStorage on changes
+  // Sync draft states to LocalStorage
   useEffect(() => {
     try {
       localStorage.setItem(LOCAL_STORAGE_MENUS_KEY, JSON.stringify(menus));
@@ -92,6 +136,33 @@ export default function App() {
       // ignore
     }
   }, [profile]);
+
+  // Sync published states to LocalStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_LIVE_MENUS_KEY, JSON.stringify(liveMenus));
+    } catch {
+      // ignore
+    }
+  }, [liveMenus]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_LIVE_PROFILE_KEY, JSON.stringify(liveProfile));
+    } catch {
+      // ignore
+    }
+  }, [liveProfile]);
+
+  useEffect(() => {
+    try {
+      if (lastPublishedAt) {
+        localStorage.setItem(LOCAL_STORAGE_LAST_PUBLISHED_KEY, lastPublishedAt);
+      }
+    } catch {
+      // ignore
+    }
+  }, [lastPublishedAt]);
 
   useEffect(() => {
     try {
@@ -180,10 +251,30 @@ export default function App() {
     }
   };
 
+  // Function to Publish/Update Live Portal for Employees
+  const handlePublishLive = () => {
+    setIsPublishing(true);
+    setTimeout(() => {
+      // Copy current working draft to live view
+      setLiveMenus(JSON.parse(JSON.stringify(menus)));
+      setLiveProfile(JSON.parse(JSON.stringify(profile)));
+      const now = new Date().toISOString();
+      setLastPublishedAt(now);
+      setIsPublishing(false);
+      setPublishSuccessToast(true);
+      setTimeout(() => setPublishSuccessToast(false), 4000);
+    }, 450);
+  };
+
   // Click tracking event dispatcher
   const handleMenuClick = (clickedMenu: MenuItem) => {
-    // 1. Increment menu click count
+    // 1. Increment menu click count in both draft and live
     setMenus((prev) =>
+      prev.map((m) =>
+        m.id === clickedMenu.id ? { ...m, clickCount: (m.clickCount || 0) + 1 } : m
+      )
+    );
+    setLiveMenus((prev) =>
       prev.map((m) =>
         m.id === clickedMenu.id ? { ...m, clickCount: (m.clickCount || 0) + 1 } : m
       )
@@ -250,16 +341,23 @@ export default function App() {
     if (window.confirm('Hapus seluruh riwayat log klik analitik?')) {
       setLogs([]);
       setMenus((prev) => prev.map((m) => ({ ...m, clickCount: 0 })));
+      setLiveMenus((prev) => prev.map((m) => ({ ...m, clickCount: 0 })));
     }
   };
 
   const handleResetDemo = () => {
     setMenus(INITIAL_MENUS);
     setProfile(INITIAL_PROFILE);
+    setLiveMenus(INITIAL_MENUS);
+    setLiveProfile(INITIAL_PROFILE);
     setLogs(INITIAL_CLICK_LOGS);
     setAdminPin('admin123');
+    setLastPublishedAt(new Date().toISOString());
     localStorage.removeItem(LOCAL_STORAGE_MENUS_KEY);
     localStorage.removeItem(LOCAL_STORAGE_PROFILE_KEY);
+    localStorage.removeItem(LOCAL_STORAGE_LIVE_MENUS_KEY);
+    localStorage.removeItem(LOCAL_STORAGE_LIVE_PROFILE_KEY);
+    localStorage.removeItem(LOCAL_STORAGE_LAST_PUBLISHED_KEY);
     localStorage.removeItem(LOCAL_STORAGE_LOGS_KEY);
     localStorage.removeItem(LOCAL_STORAGE_ADMIN_PIN_KEY);
   };
@@ -276,6 +374,9 @@ export default function App() {
           onOpenQR={() => setIsQRModalOpen(true)}
           onResetDemo={handleResetDemo}
           onLogout={handleAdminLogout}
+          onPublish={handlePublishLive}
+          isPublishing={isPublishing}
+          lastPublishedAt={lastPublishedAt}
           profile={profile}
           totalClicks={totalClicks}
         />
@@ -283,12 +384,12 @@ export default function App() {
 
       {/* Main View Area */}
       <main className="flex-1 flex flex-col">
-        {/* PUBLIC MICROSITE VIEW (Default for Employees) */}
+        {/* PUBLIC MICROSITE VIEW (Employees see the LIVE published version) */}
         {(!isAdminAuthenticated || currentView === 'public') && (
           <div className="flex-1 flex flex-col justify-start">
             <PublicMicrosite
-              profile={profile}
-              menus={menus}
+              profile={isAdminAuthenticated ? profile : liveProfile}
+              menus={isAdminAuthenticated ? menus : liveMenus}
               onMenuClick={handleMenuClick}
               onOpenQR={() => setIsQRModalOpen(true)}
               onOpenAdmin={() => {
@@ -299,11 +400,12 @@ export default function App() {
                 }
               }}
               isStandalone={true}
+              lastPublishedAt={lastPublishedAt}
             />
           </div>
         )}
 
-        {/* ADMIN DASHBOARD VIEW (Only accessible when authenticated) */}
+        {/* ADMIN DASHBOARD VIEW (Admin edits the working draft) */}
         {isAdminAuthenticated && currentView === 'admin' && (
           <AdminDashboard
             menus={menus}
@@ -319,10 +421,13 @@ export default function App() {
             adminPin={adminPin}
             setAdminPin={setAdminPin}
             onLogout={handleAdminLogout}
+            onPublish={handlePublishLive}
+            isPublishing={isPublishing}
+            lastPublishedAt={lastPublishedAt}
           />
         )}
 
-        {/* SPLIT DUAL VIEW (Admin Workspace on Left + Live Interactive Public Microsite on Right) */}
+        {/* SPLIT DUAL VIEW (Admin Workspace on Left + Live Interactive Preview on Right) */}
         {isAdminAuthenticated && currentView === 'split' && (
           <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden min-h-[calc(100vh-56px)] bg-slate-100/60">
             {/* Left 7 cols: Admin Controls */}
@@ -341,6 +446,9 @@ export default function App() {
                 adminPin={adminPin}
                 setAdminPin={setAdminPin}
                 onLogout={handleAdminLogout}
+                onPublish={handlePublishLive}
+                isPublishing={isPublishing}
+                lastPublishedAt={lastPublishedAt}
               />
             </div>
 
@@ -350,11 +458,16 @@ export default function App() {
                 <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between text-xs text-slate-500">
                   <span className="font-bold text-slate-800 flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    Live Visitor Simulator
+                    Pratinjau Hasil Edit
                   </span>
-                  <span className="text-[10px] bg-indigo-50 text-indigo-600 border border-indigo-100 px-2 py-0.5 rounded font-mono font-semibold">
-                    Interaktif
-                  </span>
+                  <button
+                    onClick={handlePublishLive}
+                    disabled={isPublishing}
+                    className="flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[11px] font-semibold transition-colors"
+                  >
+                    <Send className="w-3 h-3" />
+                    <span>Posting Live</span>
+                  </button>
                 </div>
                 <PublicMicrosite
                   profile={profile}
@@ -362,12 +475,38 @@ export default function App() {
                   onMenuClick={handleMenuClick}
                   onOpenQR={() => setIsQRModalOpen(true)}
                   isStandalone={false}
+                  lastPublishedAt={lastPublishedAt}
                 />
               </div>
             </div>
           </div>
         )}
       </main>
+
+      {/* Global Publish Success Toast Notification */}
+      <AnimatePresence>
+        {publishSuccessToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 40, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 bg-slate-900 text-white rounded-xl shadow-2xl border border-emerald-500/40 text-xs"
+          >
+            <div className="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
+              <CheckCheck className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="font-bold text-white flex items-center gap-1.5">
+                <span>Berhasil Diposting!</span>
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.2 rounded">Live</span>
+              </div>
+              <p className="text-slate-300 text-[11px] mt-0.5">
+                Halaman pegawai telah diperbarui sesuai perubahan admin terbaru.
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Admin Authentication Modal */}
       <AdminAuthModal
