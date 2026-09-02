@@ -1408,51 +1408,96 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
 
                 {/* Backup & Restore Config */}
-                <div className="p-6 bg-white border border-slate-200 rounded-xl space-y-3 shadow-xs">
-                  <h3 className="text-sm font-bold text-slate-900">Cadangkan / Pulihkan Konfigurasi Menu</h3>
-                  <p className="text-xs text-slate-500">
-                    Simpan seluruh pengaturan tombol menu dan tema ke file JSON lokal agar bisa dipindahkan ke perangkat lain.
-                  </p>
-                  <div className="flex flex-wrap gap-2 pt-2">
-                    <button
-                      onClick={() => {
-                        const dataStr = JSON.stringify({ menus, profile }, null, 2);
-                        const blob = new Blob([dataStr], { type: 'application/json' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `Backup_DirectMenu_${Date.now()}.json`;
-                        a.click();
-                        URL.revokeObjectURL(url);
-                      }}
-                      className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg border border-slate-200 shadow-xs"
-                    >
-                      💾 Unduh Backup JSON
-                    </button>
-                    <label className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg border border-slate-200 shadow-xs cursor-pointer">
-                      📁 Impor File Backup
-                      <input
-                        type="file"
-                        accept=".json"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          const reader = new FileReader();
-                          reader.onload = (event) => {
-                            try {
-                              const parsed = JSON.parse(event.target?.result as string);
-                              if (parsed.menus) setMenus(parsed.menus);
-                              if (parsed.profile) setProfile(parsed.profile);
-                              alert('Konfigurasi berhasil dipulihkan!');
-                            } catch {
-                              alert('Format file tidak valid');
-                            }
-                          };
-                          reader.readAsText(file);
+                <div className="p-6 bg-white border border-slate-200 rounded-xl space-y-4 shadow-xs">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                      <span>💾 Sinkronisasi Kode Bawaan & Cadangan Data</span>
+                      <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-semibold">Kompatibel Multi-Device</span>
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Saat Anda menekan <strong>Posting / Update Portal</strong>, data langsung tayang di portal pegawai pada browser Anda. Untuk memperbarui data bawaan agar tayang ke seluruh perangkat pegawai tanpa perlu login admin, Anda dapat mengunduh file kode data berikut.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-2">
+                      <div className="font-bold text-xs text-slate-800 flex items-center gap-1.5">
+                        <FileText className="w-4 h-4 text-indigo-600" />
+                        <span>Unduh File Kode Data (initialData.ts)</span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 leading-relaxed">
+                        Unduh file TypeScript untuk menggantikan <code>src/data/initialData.ts</code> di repositori GitHub Anda.
+                      </p>
+                      <button
+                        onClick={() => {
+                          const fileContent = `import { MenuItem, MicrositeProfile, ClickLog, ThemeConfig } from '../types';\n\nexport const THEME_PRESETS: ThemeConfig[] = ${JSON.stringify(THEME_PRESETS, null, 2)};\n\nexport const CATEGORIES_PRESET: string[] = ${JSON.stringify(CATEGORIES_PRESET, null, 2)};\n\nexport const INITIAL_MENUS: MenuItem[] = ${JSON.stringify(menus, null, 2)};\n\nexport const INITIAL_PROFILE: MicrositeProfile = ${JSON.stringify(profile, null, 2)};\n\nexport const INITIAL_CLICK_LOGS: ClickLog[] = [];\n`;
+                          const blob = new Blob([fileContent], { type: 'text/typescript' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `initialData.ts`;
+                          a.click();
+                          URL.revokeObjectURL(url);
                         }}
-                      />
-                    </label>
+                        className="w-full py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-md shadow-xs transition-colors flex items-center justify-center gap-1.5"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Unduh initialData.ts</span>
+                      </button>
+                    </div>
+
+                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-2">
+                      <div className="font-bold text-xs text-slate-800 flex items-center gap-1.5">
+                        <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                        <span>Cadangkan & Pulihkan JSON</span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 leading-relaxed">
+                        Simpan seluruh konfigurasi ke file JSON untuk dipindahkan antar browser atau disimpan sebagai backup.
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            const dataStr = JSON.stringify({ menus, profile }, null, 2);
+                            const blob = new Blob([dataStr], { type: 'application/json' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `Backup_DirectMenu_${Date.now()}.json`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          }}
+                          className="flex-1 py-2 px-2.5 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-md border border-slate-200 shadow-xs transition-colors flex items-center justify-center gap-1"
+                        >
+                          <Download className="w-3.5 h-3.5 text-slate-600" />
+                          <span>Unduh JSON</span>
+                        </button>
+                        <label className="flex-1 py-2 px-2.5 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-md border border-slate-200 shadow-xs cursor-pointer transition-colors flex items-center justify-center gap-1">
+                          <Upload className="w-3.5 h-3.5 text-slate-600" />
+                          <span>Impor JSON</span>
+                          <input
+                            type="file"
+                            accept=".json"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              const reader = new FileReader();
+                              reader.onload = (event) => {
+                                try {
+                                  const parsed = JSON.parse(event.target?.result as string);
+                                  if (parsed.menus) setMenus(parsed.menus);
+                                  if (parsed.profile) setProfile(parsed.profile);
+                                  alert('Konfigurasi berhasil dipulihkan!');
+                                } catch {
+                                  alert('Format file tidak valid');
+                                }
+                              };
+                              reader.readAsText(file);
+                            }}
+                          />
+                        </label>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

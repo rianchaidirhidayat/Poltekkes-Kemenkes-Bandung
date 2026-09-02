@@ -78,6 +78,7 @@ export default function App() {
 
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishSuccessToast, setPublishSuccessToast] = useState(false);
+  const [showPublishSuccessModal, setShowPublishSuccessModal] = useState(false);
 
   const [logs, setLogs] = useState<ClickLog[]>(() => {
     try {
@@ -256,12 +257,15 @@ export default function App() {
     setIsPublishing(true);
     setTimeout(() => {
       // Copy current working draft to live view
-      setLiveMenus(JSON.parse(JSON.stringify(menus)));
-      setLiveProfile(JSON.parse(JSON.stringify(profile)));
+      const updatedMenus = JSON.parse(JSON.stringify(menus));
+      const updatedProfile = JSON.parse(JSON.stringify(profile));
+      setLiveMenus(updatedMenus);
+      setLiveProfile(updatedProfile);
       const now = new Date().toISOString();
       setLastPublishedAt(now);
       setIsPublishing(false);
       setPublishSuccessToast(true);
+      setShowPublishSuccessModal(true);
       setTimeout(() => setPublishSuccessToast(false), 4000);
     }, 450);
   };
@@ -387,9 +391,25 @@ export default function App() {
         {/* PUBLIC MICROSITE VIEW (Employees see the LIVE published version) */}
         {(!isAdminAuthenticated || currentView === 'public') && (
           <div className="flex-1 flex flex-col justify-start">
+            {/* Quick Admin Return Bar when viewing public mode as Admin */}
+            {isAdminAuthenticated && (
+              <div className="bg-indigo-900 text-indigo-100 px-4 py-2 border-b border-indigo-700/50 flex items-center justify-between text-xs sticky top-14 z-30 shadow-md">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="font-semibold text-white">Mode Tampilan Resmi Pegawai (Live)</span>
+                  <span className="text-[11px] text-indigo-200 hidden sm:inline">— Ini adalah tampilan yang dilihat oleh seluruh karyawan</span>
+                </div>
+                <button
+                  onClick={() => setCurrentView('admin')}
+                  className="px-3 py-1 bg-white/10 hover:bg-white/20 text-white rounded text-xs font-bold transition-colors flex items-center gap-1.5 border border-white/20"
+                >
+                  <span>⚙️ Kembali ke Dashboard</span>
+                </button>
+              </div>
+            )}
             <PublicMicrosite
-              profile={isAdminAuthenticated ? profile : liveProfile}
-              menus={isAdminAuthenticated ? menus : liveMenus}
+              profile={liveProfile}
+              menus={liveMenus}
               onMenuClick={handleMenuClick}
               onOpenQR={() => setIsQRModalOpen(true)}
               onOpenAdmin={() => {
@@ -505,6 +525,70 @@ export default function App() {
               </p>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Publish Success Interactive Dialog */}
+      <AnimatePresence>
+        {showPublishSuccessModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full overflow-hidden"
+            >
+              <div className="p-6 text-center space-y-4">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/30">
+                  <CheckCheck className="w-9 h-9" />
+                </div>
+
+                <div className="space-y-1.5">
+                  <h3 className="text-lg font-bold text-slate-900">
+                    Perubahan Berhasil Diposting!
+                  </h3>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    Semua perubahan menu, tautan, dan tema telah diperbarui dan langsung tayang pada <strong>Halaman Portal Pegawai</strong>.
+                  </p>
+                </div>
+
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-left text-xs space-y-1.5 font-mono">
+                  <div className="flex justify-between text-slate-600">
+                    <span>Total Tombol Aktif:</span>
+                    <span className="font-bold text-slate-900">{liveMenus.filter(m => m.isActive).length} Menu</span>
+                  </div>
+                  <div className="flex justify-between text-slate-600">
+                    <span>Tema Tampilan:</span>
+                    <span className="font-bold text-slate-900">{liveProfile.theme.name}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-600">
+                    <span>Waktu Publikasi:</span>
+                    <span className="font-bold text-emerald-600">
+                      {new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
+                  <button
+                    onClick={() => {
+                      setShowPublishSuccessModal(false);
+                      setCurrentView('public');
+                    }}
+                    className="flex-1 py-2.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95"
+                  >
+                    <span>👁️ Buka Halaman Pegawai</span>
+                  </button>
+                  <button
+                    onClick={() => setShowPublishSuccessModal(false)}
+                    className="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors"
+                  >
+                    Tetap di Dashboard
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
